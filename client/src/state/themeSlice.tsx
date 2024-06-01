@@ -1,6 +1,9 @@
-import {createSlice} from "@reduxjs/toolkit"
+import { createSlice } from "@reduxjs/toolkit";
 
-const initialState = {
+interface ThemeState {
+    mode: string;
+}
+const initialState: ThemeState = {
     mode: "light",
 }
 
