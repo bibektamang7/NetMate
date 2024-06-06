@@ -1,7 +1,52 @@
 import React, { useState } from 'react'
+import {useForm} from "react-hook-form"
+import {
+    useLoginMutation,
+    useRegisterUserMutation
+} from '../../config/Api';
+
+interface FormData{
+    email: string;
+    password: string;
+}
+
+const handleLoginSubmit = async (login: any, data: FormData) => {
+    try {
+      const response = await login(data);
+      // Handle successful login
+      console.log('Login successful', response);
+    } catch (error) {
+      // Handle login error
+      console.error('Login failed', error);
+    }
+  };
+  
+  const handleRegisterSubmit = async (registerUser: any, data: FormData) => {
+    try {
+      const response = await registerUser(data);
+      // Handle successful registration
+      console.log('Registration successful', response);
+    } catch (error) {
+      // Handle registration error
+      console.error('Registration failed', error);
+    }
+  };
 
 function LoginPage() {
     const [pageType, setPageType] = useState("login");
+    const { register, handleSubmit } = useForm<FormData>();
+
+    const [login] = useLoginMutation();
+    const [registerUser] = useRegisterUserMutation();
+
+    const submit = (data: FormData) => {
+        if (pageType === "login") {
+            handleLoginSubmit(login,data);
+        } else {
+            handleRegisterSubmit(registerUser,data);
+        }
+    }
+
     return (
         <section>
             <div className="flex items-center justify-center px-4 py-10 sm:px-6 sm:py-16 lg:px-8 lg:py-24">
@@ -25,7 +70,7 @@ function LoginPage() {
                         </span>
                     </p>
                     }
-                    <form action="#" method="POST" className="mt-8">
+                    <form onSubmit={handleSubmit(submit)} action="#" method="POST" className="mt-8">
                         <div className="space-y-5">
                             <div>
                                 <label htmlFor="" className="text-base font-medium text-gray-900">
@@ -37,6 +82,16 @@ function LoginPage() {
                                         className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                                         type="email"
                                         placeholder="Email"
+                                        required
+                                        {...register("email", {
+                                            required: true,
+                                            validate: {
+                                                matchPattern: (value) => /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(value) || "Email must be a valid address",
+                                            }
+                                        })}
+                                        autoComplete='email'
+                                        name='email'
+                                        id='email'
                                     />
                                 </div>
                             </div>
@@ -62,6 +117,11 @@ function LoginPage() {
                                         className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                                         type="password"
                                         placeholder="Password"
+                                        {...register("password", {
+                                            required: true,
+                                        })}
+                                        name='password'
+                                        id='password'
                                     />
                                 </div>
                             </div>
@@ -78,9 +138,9 @@ function LoginPage() {
                                         viewBox="0 0 24 24"
                                         fill="none"
                                         stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
                                         className="ml-2"
                                     >
                                         <line x1="5" y1="12" x2="19" y2="12"></line>

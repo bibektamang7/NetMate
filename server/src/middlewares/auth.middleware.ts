@@ -1,20 +1,26 @@
-import jwt from "jsonwebtoken"
+import jwt,{JwtPayload} from "jsonwebtoken"
+import { Request,Response, NextFunction } from "express"
 import { User } from "../models/user.model"
 import ApiError from "../utils/ApiError"
 import { asyncHandler } from "../utils/asyncHandler"
 
-interface JwtPayload{
+interface TokenPayload extends JwtPayload{
     _id: string,
     email: string,
 }
 
-export const verifyJWT = asyncHandler(async (req, res, next) => {
+export const verifyJWT = asyncHandler(async (req: Request, res:Response, next:NextFunction) => {
     try {
         const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer", "");
         if (!token) {
             throw new ApiError(401,"unauthorized request")
         }
-        const decodedToken = jwt.verify(token,process.env.ACCESS_TOKEN_SECRET) as JwtPayload;
+        const secret = process.env.ACCESS_TOKEN_SECRET;
+        if (!secret) {
+          throw new ApiError(500, "Access token secret is not defined");
+        }
+    
+        const decodedToken = jwt.verify(token,secret) as TokenPayload;
         const user = await User.findById(decodedToken?._id).select("-password -refreshToken");
         if (!user) {
             throw new ApiError(401, "Invalid access token");

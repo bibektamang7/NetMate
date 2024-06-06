@@ -8,14 +8,19 @@ import {
   LoginPage
 } from "./pages/index.ts"
 
+import { AuthLayout,Authenticated } from "./components/index.ts";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <LoginPage/>,
+    
     children: [
       {
         path: "/home",
-        element: <Home/>
+        element: (
+          // <AuthLayout authentication>
+            <Home/>
+          // {/* </AuthLayout> */}
+        )
       }
     ]
   }
@@ -23,7 +28,7 @@ const router = createBrowserRouter([
 
 
 function App() {
-
+  
   return <RouterProvider router={router}/>
 }
 

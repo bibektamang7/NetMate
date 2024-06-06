@@ -17,7 +17,7 @@ export const authSlice = createSlice({
     initialState,
     reducers: {
         setLogin: (state, action) => { },
-        setLogout: (state,action) => { },
+        setLogout: (state) => { },
         setFriends: (state, action) => { },
         setPost: (state,action) => {},
         setPosts: (state,action) => {},

@@ -13,12 +13,15 @@ import {
     followUser,
     unfollowUser,
     searchUsers,
-    getUserPosts
+    getUserPosts,
+    validateToken,
 } from "../controllers/user.controller";
 import { verifyJWT } from "../middlewares/auth.middleware";
 import upload from "../middlewares/multer.middleware";
 
 const router = Router();
+
+router.route("/validateToken").get(verifyJWT, validateToken);
 
 router.route("/createUser").post(createUser)
 router.route("/login").post(logUser);

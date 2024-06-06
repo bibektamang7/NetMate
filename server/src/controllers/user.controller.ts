@@ -2,12 +2,13 @@ import mongoose from "mongoose";
 import { Request,Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import ApiError from "../utils/ApiError";
-import { User } from "../models/user.model";
+import { User,IUser } from "../models/user.model";
 import { Post } from "../models/post.model";
 import ApiResponse from "../utils/ApiResponse";
 
 interface CustomRequest<T = any> extends Request {
     body: T;
+    user?: IUser;
 }
 
 interface RegisterUserRequest {
@@ -268,7 +269,12 @@ const getUserPosts = asyncHandler(async (req: Request, res: Response) => {
     res.status(200).json(new ApiResponse(200, posts));
 });
 
+const validateToken = asyncHandler(async (req: Request, res: Response) => {
+    // res.status(200).json({ isValid: true, user: req.user });
+})
+
 export {
+    validateToken,
     getUserProfile,
     followUser,
     unfollowUser,
