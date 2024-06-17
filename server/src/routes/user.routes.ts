@@ -15,6 +15,7 @@ import {
     searchUsers,
     getUserPosts,
     validateToken,
+    getSuggestedUsers,
 } from "../controllers/user.controller";
 import { verifyJWT } from "../middlewares/auth.middleware";
 import upload from "../middlewares/multer.middleware";
@@ -32,10 +33,11 @@ router.route("/updateProfileImage").post(verifyJWT,upload.single("profileImage")
 router.route("/updateCoverImage").post(verifyJWT,upload.single("coverImage"),updateCoverImage);
 router.route("/followers").get(verifyJWT, getFollowers);
 router.route("/following").get(verifyJWT, getFollowing);
-router.route("/profile/:userId").get(verifyJWT, getUserProfile);
-router.route("/follow/:userId").post(verifyJWT, followUser);
-router.route("/unfollow/:userId").post(verifyJWT, unfollowUser);
-router.route("/search").get(verifyJWT, searchUsers);
+router.route("/profile/:username").get(verifyJWT, getUserProfile);
+router.route("/follow/:username").post(verifyJWT, followUser);
+router.route("/unfollow/:username").post(verifyJWT, unfollowUser);
+router.route("/searchUser").get(verifyJWT, searchUsers);
+router.route("/suggestedUser").get(verifyJWT, getSuggestedUsers);
 router.route("/:userId/posts").get(verifyJWT, getUserPosts);
 
 export default router;

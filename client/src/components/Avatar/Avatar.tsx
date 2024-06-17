@@ -1,21 +1,24 @@
 import React from 'react'
 
 function Avatar(
-    {
-        image, isRounded = true,
-        width, height }: {
-            image: string,
-            width: string,
-            isRounded?: boolean,
-            height: string,
-        }
+  {
+    image,
+    isRounded = true,
+    width,
+    height
+  }: {
+    image: string | undefined,
+    width: string,
+    isRounded?: boolean,
+    height: string,
+  }
 ) {
+
   return (
-      <div className={`${isRounded ? "rounded-full" : "rounded-lg"}`}>
+    <div style={{ width, height }} className={``}>
       <img
         src={image}
-        style={{width,height}}
-        className={`object-contain`} alt="" />
+        className={`w-full h-full object-cover ${isRounded ? "rounded-full" : "rounded-lg"}`} alt="" />
     </div>
   )
 }

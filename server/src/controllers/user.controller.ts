@@ -5,6 +5,7 @@ import ApiError from "../utils/ApiError";
 import { User,IUser } from "../models/user.model";
 import { Post } from "../models/post.model";
 import ApiResponse from "../utils/ApiResponse";
+import { uploadOnCloudinary } from "../utils/fileUpload.cloudinary";
 
 interface CustomRequest<T = any> extends Request {
     body: T;
@@ -14,6 +15,8 @@ interface CustomRequest<T = any> extends Request {
 interface RegisterUserRequest {
     email: string;
     password: string;
+    fullName: string;
+    username: string;
 }
 
 const generateRefreshAndAccessToken = async (user : any) => {
@@ -31,18 +34,26 @@ const generateRefreshAndAccessToken = async (user : any) => {
 }
 
 const createUser = asyncHandler(async (req: CustomRequest<RegisterUserRequest>, res: Response) => {
-    const { email, password } = req.body;
+    const { email, password,fullName,username } = req.body;
 
-    if (!(email && password)) {
+    if (!(email && password && fullName && username)) {
         throw new ApiError(401, "All fields required");
     }
-    const existedUser = await User.findOne({ email });
+    const existedUser = await User.findOne(
+        {
+            $or: [{username},{email}]
+        }
+    );
     if (existedUser) {
         throw new ApiError(401, "User already exists");
     }
+    const defaultProfileImage = "https://res.cloudinary.com/dslmpkxrs/image/upload/v1718555641/profileImg_yhr1xm.png"
     const newUser = await User.create({
         email,
         password,
+        fullName,
+        username,
+        profilePicture: defaultProfileImage,
     });
     if (!createUser) {
         throw new ApiError(501, "Something went wrong");
@@ -103,10 +114,16 @@ const updateProfileImage = asyncHandler(async (req: Request, res: Response) => {
     if (!req.file) {
         throw new ApiError(400, "No file uploaded");
     }
-
+    const profileImage = req.file.path as string;
+    const uploaded = await uploadOnCloudinary(profileImage);
+    console.log(uploaded,profileImage);
+    
+    if (!uploaded || !uploaded.url) {
+        throw new ApiError(501, "something went wrong while upload image on cloudinary");
+    }
     const user = await User.findByIdAndUpdate(
         req.user._id,
-        { profilePicture: req.file.path },
+        { profilePicture: uploaded.url },
         { new: true, runValidators: true }
     ).select('-password -refreshToken');
 
@@ -118,13 +135,14 @@ const updateProfileImage = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const updateProfile = asyncHandler(async (req: Request, res: Response) => {
-    const updates = req.body;
-
+    const {bio,username,fullName} = req.body;
+    console.log(bio,username,fullName);
+    
     const user = await User.findByIdAndUpdate(
         req.user._id,
-        updates,
+        {username},
         { new: true, runValidators: true }
-    ).select('-password -refreshToken');
+    ).select('-password -refreshToken -creadedAt -updatedAt -email -_id');
 
     if (!user) {
         throw new ApiError(404, "User not found");
@@ -137,12 +155,17 @@ const updateCoverImage = asyncHandler(async (req: Request, res: Response) => {
     if (!req.file) {
         throw new ApiError(400, "No file uploaded");
     }
+    const coverImage = req.file.path as string;
+    const uploaded = await uploadOnCloudinary(coverImage);
 
+    if (!uploaded || !uploaded.url) {
+        throw new ApiError(501, "something went wrong while upload image on cloudinary");
+    }
     const user = await User.findByIdAndUpdate(
         req.user._id,
-        { coverImage: req.file.path },
+        { coverImage: uploaded.url },
         { new: true, runValidators: true }
-    ).select('-password -refreshToken');
+    ).select('-password -refreshToken -email -_id -createdAt -updatedAt');
 
     if (!user) {
         throw new ApiError(404, "User not found");
@@ -169,19 +192,62 @@ const changePassword = asyncHandler(async (req:Request, res:Response) => {
 const getFollowers = asyncHandler(async (req: Request, res: Response) => {
     const currentUserId = req.user?._id;
 
-    const user = await User.findById(currentUserId).populate('followers', 'username profilePicture');
-    if (!user) {
+    // Find the user and populate followers and following using aggregation
+    const result = await User.aggregate([
+        { $match: { _id: currentUserId } },
+        {
+            $lookup: {
+                from: "users",
+                localField: "followers",
+                foreignField: "_id",
+                as: "followers"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "following",
+                foreignField: "_id",
+                as: "following"
+            }
+        },
+        {
+            $addFields: {
+                followers: {
+                    $map: {
+                        input: "$followers",
+                        as: "follower",
+                        in: {
+                            username: "$$follower.username",
+                            fullName: "$$follower.fullName",
+                            profilePicture: "$$follower.profilePicture",
+                            isFollowed: { $in: ["$$follower._id", "$following._id"] }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                followers: 1,
+                _id: 0
+            }
+        }
+    ]);
+
+    if (!result || result.length === 0) {
         throw new ApiError(404, "User not found");
     }
 
-    const followers = user.followers;
+    const followersWithFollowStatus = result[0].followers;
 
-    res.status(200).json(new ApiResponse(200, followers, "Followers retrieved successfully"));
+    res.status(200).json(new ApiResponse(200, followersWithFollowStatus, "Followers retrieved successfully"));
 });
+
 const getFollowing = asyncHandler(async (req: Request, res: Response) => {
     const currentUserId = req.user?._id;
 
-    const user = await User.findById(currentUserId).populate('following', 'username profilePicture');
+    const user = await User.findById(currentUserId).populate('following', 'username fullName profilePicture');
     if (!user) {
         throw new ApiError(404, "User not found");
     }
@@ -202,26 +268,25 @@ const getUserProfile = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const followUser = asyncHandler(async (req: Request, res: Response) => {
-    const { userId } = req.params;
-    const currentUserId = req.user?._id;
+    const { username } = req.params;
     
-    if (userId === currentUserId.toString()) {
+    const currentUser = req.user;
+    if (username === currentUser.username) {
         throw new ApiError(400, "You cannot follow yourself");
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findOne({username});
     if (!user) {
         throw new ApiError(404, "User not found");
     }
 
-    if (!user.followers.includes(currentUserId)) {
-        user.followers.push(currentUserId);
+    if (!user.followers.includes(currentUser._id)) {
+        user.followers.push(currentUser._id);
         await user.save();
     }
-    const userIdObject = new mongoose.Types.ObjectId(userId);
-    const currentUser = await User.findById(currentUserId);
-    if (currentUser && !currentUser.following.includes(userIdObject)) {
-        currentUser.following.push(userIdObject);
+    
+    if (currentUser && !currentUser.following.includes(user._id)) {
+        currentUser.following.push(user._id);
         await currentUser.save();
     }
 
@@ -229,35 +294,62 @@ const followUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const unfollowUser = asyncHandler(async (req: Request, res: Response) => {
-    const { userId } = req.params;
-    const currentUserId = req.user?._id;
-    
-    if (userId === currentUserId.toString()) {
-        throw new ApiError(400, "You cannot unfollow yourself");
+    const { username } = req.params;
+    const currentUser = req.user as IUser | undefined;
+
+    if (!currentUser) {
+        throw new ApiError(401, 'Unauthorized');
     }
 
-    const user = await User.findById(userId);
+    if (username === currentUser.username) {
+        throw new ApiError(400, 'You cannot unfollow yourself');
+    }
+
+    const user = await User.findOne({ username });
     if (!user) {
-        throw new ApiError(404, "User not found");
+        throw new ApiError(404, 'User not found');
     }
 
-    user.followers = user.followers.filter(follower => !follower.equals(currentUserId));
-    await user.save();
+    // Update followers of the user being unfollowed
+    await User.findByIdAndUpdate(
+        user._id,
+        { $pull: { followers: currentUser._id } }
+    );
 
-    const currentUser = await User.findById(currentUserId);
-    if (currentUser) {
-        currentUser.following = currentUser.following.filter(following => !following.equals(userId));
-        await currentUser.save();
+    // Update following of the current user
+    await User.findByIdAndUpdate(
+        currentUser._id,
+        { $pull: { following: user._id } },
+        { new: true } // To return the updated document
+    );
+
+    res.status(200).json(new ApiResponse(200, null, 'User unfollowed successfully'));
+});
+  
+  
+
+
+const isFollowed = asyncHandler(async (req: Request, res: Response) => {
+    const { username } = req.params;
+    const searchedUser = await User.findOne({ username });
+    if (!searchedUser) {
+        throw new ApiError(401, "Username doesn't exists");
     }
+    const currentUser = req.user;
 
-    res.status(200).json(new ApiResponse(200, null, "User unfollowed successfully"));
+    const isFollowing = currentUser.following.find((following:mongoose.Types.ObjectId[]) => following === searchedUser._id);
+
+    res.status(200).json(new ApiResponse(200, { isFollowing }));
 });
 
 const searchUsers = asyncHandler(async (req: Request, res: Response) => {
     const { query } = req.query;
+    console.log(query);
+    
     const users = await User.find({
         username: { $regex: query, $options: "i" }
-    }).select("-password -refreshToken");
+    }).select("-password -refreshToken -email -createdAt -updatedAt");
+    
     
     res.status(200).json(new ApiResponse(200, users));
 });
@@ -270,8 +362,20 @@ const getUserPosts = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const validateToken = asyncHandler(async (req: Request, res: Response) => {
-    // res.status(200).json({ isValid: true, user: req.user });
+    
+    res.status(200).json({ isValid: true, user: req.user });
 })
+
+const getSuggestedUsers = asyncHandler(async (req: Request, res: Response) => {
+    const currentUser = req.user;
+
+    // Get users that the current user is not following and exclude the current user
+    const suggestedUsers = await User.find({
+        _id: { $ne: currentUser._id, $nin: currentUser.following }
+    }).select('-password -refreshToken -email -createdAt -updatedAt');
+
+    res.status(200).json(new ApiResponse(200, suggestedUsers, "Suggested users retrieved successfully"));
+});
 
 export {
     validateToken,
@@ -289,4 +393,5 @@ export {
     createUser,
     logUser,     
     logoutUser,
+    getSuggestedUsers,
 }

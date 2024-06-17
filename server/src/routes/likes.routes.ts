@@ -9,6 +9,6 @@ const router = Router();
 
 router.route("/:postId/likePost").post(verifyJWT,likePost);
 router.route("/:postId/unLikePost").delete(verifyJWT,unlikePost);
-router.route("/:postId").get(verifyJWT,getPostLikes);
+router.route("/:postId/getPostLikes").get(verifyJWT,getPostLikes);
 
 export default router;

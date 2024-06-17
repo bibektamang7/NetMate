@@ -20,7 +20,7 @@ const Authenticated: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     if (isLoading) return;
 
     if (data?.isValid && data.user) {
-      dispatch(setLogin(data.user));
+      dispatch(setLogin({data:data.user}));
       navigate('/home');
     } else if (isError) {
       dispatch(setLogout());

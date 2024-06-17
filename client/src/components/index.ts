@@ -18,7 +18,11 @@ import PostCard from "./Post/PostCard";
 
 import Avatar from "./Avatar/Avatar";
 
- 
+import CreatePost from "./Post/CreatePost";
+import Select from "./Select/Select";
+import Input from "./Input/Input";
+
+import Follow from "./Profile/Follow";
 
 export {
     AuthLayout,
@@ -32,4 +36,10 @@ export {
     PostCard,
 
     Avatar,
+
+    CreatePost,
+
+    Select,
+    Input,
+    Follow,
 }

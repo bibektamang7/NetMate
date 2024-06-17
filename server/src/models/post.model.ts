@@ -1,9 +1,10 @@
 import mongoose,{Schema,Document} from "mongoose";
 
-interface IPost extends Document{
+export interface IPost extends Document{
     author: mongoose.Types.ObjectId,
     content: string,
     postImage: string,
+    visibility: "public" | "private" | "friends";
 }
 
 const postSchema = new Schema<IPost>({
@@ -17,9 +18,13 @@ const postSchema = new Schema<IPost>({
     },
     postImage: {
         type: String,
-        required: true,
     },
-
+    visibility: {
+        type: String,
+        enum: ["public", "private", "friends"],
+        default: "public",
+    }
+    
 }, { timestamps: true });
  
 export const Post = mongoose.model<IPost>("Post", postSchema);

@@ -1,10 +1,11 @@
 // global.d.ts
-import { IUser } from "../src/models/user.model";
+import { User } from "../src/models/user.model";
 
 declare global {
     namespace Express {
         interface Request {
             user?: User;
+            params: string;
         }
     }
 }
@@ -20,6 +21,6 @@ declare namespace NodeJS {
         CLOUDINARY_API_SECRET: string;
         CORS_ORIGIN: string;
         MONGODB_URL: string;
-        PORT: number;
+        PORT: string;
     }
 }

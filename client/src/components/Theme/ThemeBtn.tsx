@@ -5,7 +5,10 @@ import { Icons } from '../../assets/Icons/Icon';
 function ThemeBtn() {
     const dispatch = useDispatch();
   return (
-    <div className='hover:cursor-pointer border-2 border-slate-200 rounded-full' onClick={() => (dispatch(setMode()))}>
+    <div
+      className='hover:cursor-pointer border-2 border-slate-200 rounded-full'
+      onClick={() => (dispatch(setMode()))}
+    >
       <Icons.MdDarkMode/>
     </div>
   )

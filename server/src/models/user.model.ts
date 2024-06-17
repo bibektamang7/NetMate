@@ -4,10 +4,11 @@ import bcrypt from 'bcrypt';
 
 export interface IUser extends Document {
     username: string;
+    fullName: string;
     email: string;
     password: string;
     bio: string;
-    profilePicture: string;
+    profileImage: string;
     coverImage: string;
     birthdate: Date;
     posts: mongoose.Types.ObjectId[];
@@ -23,7 +24,9 @@ const userSchema = new Schema<IUser>({
         type: String,
         unique: true,
         trim: true,
+        index: true,
     },
+    fullName: String,
     email: {
         type: String,
         required: true,
@@ -40,8 +43,9 @@ const userSchema = new Schema<IUser>({
     bio: {
         type: String,
         maxlength: 160, // A common limit for bio in social media apps
+        default: "",
     },
-    profilePicture: String,
+    profileImage: String,
     coverImage: String,
     birthdate: Date,
     posts: [{
@@ -51,9 +55,11 @@ const userSchema = new Schema<IUser>({
     followers: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
+        default: []
     }],
     following: [{
         type: mongoose.Schema.Types.ObjectId,
+        default: [],
         ref: 'User',
     }],
 }, { timestamps: true });

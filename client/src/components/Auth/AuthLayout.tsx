@@ -11,11 +11,12 @@ interface AuthLayoutProps {
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ children, authentication = true }) => {
   const isAuthenticated = useSelector((state: RootState) => state.auth.authenticate);
-
+  console.log(isAuthenticated);
+  
   if (authentication && !isAuthenticated) {
     return <Navigate to="/" />;
   }
-
+  console.log("what")
   return <>{children}</>;
 };
 

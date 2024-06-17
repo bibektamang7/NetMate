@@ -1,4 +1,5 @@
-import React, { useId, InputHTMLAttributes } from 'react';
+import React, { useId, InputHTMLAttributes, ForwardedRef } from 'react';
+import { UseFormRegister } from 'react-hook-form';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;
@@ -6,17 +7,24 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     className?: string;
     placeholder?: string;
     name?: string;
+    register?: UseFormRegister<any>;
+    required?: boolean;
 }
 
-const Input: React.FC<InputProps> = ({
+const Input = React.forwardRef<HTMLInputElement, InputProps>(({
     label,
     type = "text",
     className = "",
     placeholder = "",
     name = "",
+    register,
+    required = true,
     ...props
-}) => {
+}, ref: ForwardedRef<HTMLInputElement>) => {
     const id = useId();
+
+    const registeredProps = register && name ? register(name, { required }) : {};
+
     return (
         <div className='w-full'>
             {label && (
@@ -29,14 +37,16 @@ const Input: React.FC<InputProps> = ({
             )}
             <input
                 id={id}
-                className={`${className} dark:bg-darkCardBgColor px-3 py-1 rounded-lg bg-white text-black outline-none focus:bg-gray-50 duration-200 border border-gray-200 w-full`}
+                name={name}
+                ref={ref}
+                className={`${className} dark:bg-darkCardBgColor dark:text-white px-3 py-1 rounded-lg bg-white text-black outline-none focus:bg-gray-50 duration-200 border border-gray-200 w-full`}
                 type={type}
                 placeholder={placeholder}
-                name={name}
+                {...registeredProps}
                 {...props}
             />
         </div>
     );
-}
+});
 
 export default Input;
